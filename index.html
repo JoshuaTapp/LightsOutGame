@@ -1,0 +1,220 @@
+<!-- 
+    Sources: 
+        https://tylerduprey-52451.medium.com/a-perfect-square-with-css-964499440998
+
+    Hosted Website:
+        https://cs4640.cs.virginia.edu/jct7bm/hw7
+ -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>Home - Lights Out Game</title>
+    <meta name="description" content="A simple lights out game implementation using a php backend and jQuery.">
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/table.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800&amp;display=swap">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+</head>
+
+<body style="/*background: url(&quot;design.jpg&quot;);*/background-position: 0 -60px;">
+    <nav class="navbar navbar-light navbar-expand-md fixed-top navbar-shrink py-3" id="mainNav">
+        <div class="container"><a class="navbar-brand d-flex align-items-center" href="/"><span class="bs-icon-md bs-icon-rounded bs-icon-primary shadow d-flex justify-content-center align-items-center me-2 bs-icon"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" viewBox="0 0 16 16" class="bi bi-lightbulb-fill">
+                        <path d="M2 6a6 6 0 1 1 10.174 4.31c-.203.196-.359.4-.453.619l-.762 1.769A.5.5 0 0 1 10.5 13h-5a.5.5 0 0 1-.46-.302l-.761-1.77a1.964 1.964 0 0 0-.453-.618A5.984 5.984 0 0 1 2 6zm3 8.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1l-.224.447a1 1 0 0 1-.894.553H6.618a1 1 0 0 1-.894-.553L5.5 15a.5.5 0 0 1-.5-.5z"></path>
+                    </svg></span><span>Lights Out Game</span></a></div>
+    </nav>
+    <header class="bg-primary-gradient pt-5">
+        <div class="container pt-4 pt-xl-5">
+            <div class="row row-cols-1 pt-5">
+                <div class="col-auto text-center text-md-start mx-auto">
+                    <div class="text-center">
+                        <h1 class="fw-bold">Play Lights Out!</h1>
+                    </div>
+                </div>
+            </div>
+            <div class="row pt-5">
+                <div class="col-md-8 col-xl-6 text-center text-md-start mx-auto">
+                    <p>To start the game, declare the size of the game board.</p>
+                    <form id="start-game" action="">
+                        <div class="input-group"><span class="input-group-text">Row</span><input class="form-control" type="number" placeholder="Enter a number greater than zero" min="1" step="1" name="row"></div>
+                        <div class="input-group"><span class="input-group-text">Column</span><input class="form-control" type="number" placeholder="Enter a number greater than zero" min="1" step="1" name="col"></div>
+                        <button class="btn btn-primary float-end" id="submit-btn" type="submit">Start Game</button>
+                    </form>
+                    <div class="modal fade" role="dialog" tabcol="-1" id="modal">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h4 class="modal-title">You Won!</h4><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Thanks for playing. Feel free to play again by pressing the "Start Game" button. You can also change the Row/Column size before to change the game board.</p>
+                                </div>
+                                <div class="modal-footer"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-10 mx-auto">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <tbody id="game-board">
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <footer class="bg-primary-gradient">
+        <div class="container py-4 py-lg-5">
+            <hr>
+            <div class="text-muted d-flex justify-content-between align-items-center pt-3">
+                <p class="mb-0">Copyright © 2022 Joshua Tapp</p>
+            </div>
+        </div>
+    </footer>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/bold-and-bright.js"></script>
+    <script>
+        let on;
+        let sizes;
+        let boxes;
+        let active = true;
+        jQuery(document).ready(function() {
+            jQuery('#submit-btn').click(function(e){
+                e.preventDefault();
+                let data = $('#start-game').serialize();
+
+                $.ajax({
+                    method: 'GET',
+                    url: 'setup.php',
+                    data: data,
+                    result: "json",
+                    success: function(response) 
+                    {
+                        let resp = response;
+                        console.log(resp);
+                        generateBoard(resp);
+                    },
+                    error: function (response) 
+                    {
+                        let resp = response.responseText;
+                        console.log(resp);
+                    },
+                });
+            });
+        });
+        function generateBoard(resp)
+        {
+            let arr = JSON.parse(resp);
+            sizes = arr[0];
+            boxes = arr[1];
+            console.log(sizes);
+            console.log(boxes);
+            on = new Array( (sizes[0] * sizes[1]) ).fill(false);
+            console.log(on);
+            // clear table body before creating new one
+            $("#game-board").empty();
+            let cellNum = 0;
+            active = true;
+            for(let col = 1; col <= sizes[1]; col++ )
+            {
+                let row = '<tr>';
+
+                for(let cell = 1; cell <= sizes[0]; cell++)
+                {
+                    row += '\n<td class="cell"><div class="square" id="' + cellNum + '" onclick="turnOnAdj(this.id)"></div></td>';
+                    cellNum++;
+                }
+                row += '</tr>';
+                $("#game-board").append(row);
+            }
+
+            boxes.forEach(element => {
+                turnOn(element);
+            });
+        }
+
+        function turnOn(cellID)
+        {
+            let id = "#" + parseInt(cellID);
+            //console.log($(id).css("background-color"));
+            if($(id).css("background-color") === "rgb(255, 250, 240)")
+            {
+                $(id).css("background-color", "lightsteelblue")  
+                on[cellID] = false;
+                //console.log((on.every(e => e === true)));
+
+            }
+            else
+            {
+                $(id).css("background-color", "floralwhite")
+                on[cellID] = true;
+            
+                
+                console.log(on);
+            }
+            console.log("Clicked: " + id);
+        }
+
+        function turnOnAdj(cellID)
+        {
+            if(active)
+            {
+                let cell = parseInt(cellID);
+                let rowSize = sizes[0];
+                let colSize = sizes[1];
+                console.log("Row: " + rowSize + " Col: " + colSize);
+                turnOn(cell);
+                // Right Edge Check
+                if( ((cell + 1) % rowSize) > 0)
+                {
+                    let newCell = cell + 1;
+                    console.log("in right: " + newCell); 
+                    turnOn(newCell);
+                } 
+                // Left Edge Check
+                if( (cell % rowSize) > 0 )
+                {
+                    let newCell = cell - 1;
+                    console.log("in left: " + newCell); 
+                    turnOn(newCell);
+                }
+                // Top Edge Check
+                if( (cell - rowSize) >= 0 )
+                {
+                    let newCell = cell - rowSize;
+                    console.log("in top: " + newCell);   
+                    turnOn(newCell);
+                }
+                // Bottom Edge Check
+                if( (cell + rowSize) < (colSize*rowSize) )
+                {
+                    let newCell = cell + rowSize;
+                    console.log("in bottom: " + newCell);
+                    turnOn(newCell);
+            }
+            gameWon();
+            }
+        }
+
+        function gameWon()
+        {
+            if( (on.every(e => e === true) ) )
+            {
+                console.log("YOU WON!");
+                active = false;
+                $('#modal').modal('show');
+
+            }
+            
+        }
+    </script>
+</body>
+
+</html>
